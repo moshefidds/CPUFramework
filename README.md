@@ -1,3 +1,5 @@
-CPU Framework
+# CPU Framework
 
-All code architecture referenced from here.
+CPUFramework will be used throughout the course for:
+- Organization of all code architecture.
+- All code will be referenced from here.
