@@ -7,24 +7,39 @@ namespace CPUFramework
     public class SqlUtility
     {
         public static string ConnectionString = "";
+
+        public static SqlCommand GetSqlCommand(string sprocname)
+        {
+            SqlCommand cmd;
+            using (SqlConnection conn = new SqlConnection(SqlUtility.ConnectionString))
+            {
+                cmd = new SqlCommand(sprocname, conn);
+                cmd.CommandType = CommandType.StoredProcedure;
+                conn.Open();
+                SqlCommandBuilder.DeriveParameters(cmd);
+            }
+            return cmd;
+        }
+
+        public static DataTable GetDataTable(SqlCommand cmd)
+        {
+            Debug.Print("---------" + Environment.NewLine + cmd.CommandText);
+            DataTable dt = new();
+            using (SqlConnection conn = new SqlConnection(SqlUtility.ConnectionString))
+            {
+                conn.Open();
+                cmd.Connection = conn;
+                SqlDataReader dr = cmd.ExecuteReader();
+                dt.Load(dr);
+            }
+            SetAllColumnsAllowNull(dt);
+            return dt;
+        }
+
         // GetDataTable - take a sql statement and retaurn a data table
         public static DataTable GetDataTable(string sqlstatement)
         {
-            Debug.Print(sqlstatement);
-            DataTable dt = new();
-            SqlConnection conn = new();
-            conn.ConnectionString = ConnectionString;
-            conn.Open();
-
-            var cmd = new SqlCommand();
-            cmd.Connection = conn;
-            cmd.CommandText = sqlstatement;
-            var dr = cmd.ExecuteReader();
-            dt.Load(dr);
-
-            SetAllColumnsAllowNull(dt);
-
-            return dt;
+            return GetDataTable(new SqlCommand(sqlstatement));
         }
 
         public static void ExecuteSQL(string sqlstatement)
