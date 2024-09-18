@@ -1,6 +1,8 @@
 ﻿using System.Data;
 using System.Data.SqlClient;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
+using System.Text;
 
 namespace CPUFramework
 {
@@ -23,12 +25,13 @@ namespace CPUFramework
 
         public static DataTable GetDataTable(SqlCommand cmd)
         {
-            Debug.Print("---------" + Environment.NewLine + cmd.CommandText);
+            
             DataTable dt = new();
             using (SqlConnection conn = new SqlConnection(SqlUtility.ConnectionString))
             {
                 conn.Open();
                 cmd.Connection = conn;
+                Debug.Print(GetSql(cmd));
                 SqlDataReader dr = cmd.ExecuteReader();
                 dt.Load(dr);
             }
@@ -67,6 +70,50 @@ namespace CPUFramework
             {
                 c.AllowDBNull = true;
             }
+        }
+
+        public static string GetSql(SqlCommand cmd)
+        {
+            string val = "";
+
+#if DEBUG
+            StringBuilder sb = new();
+
+            if (!String.IsNullOrEmpty(cmd.Connection.ToString()))
+            {
+                sb.AppendLine($"--{cmd.Connection.DataSource}");
+                sb.AppendLine($"use {cmd.Connection.Database}");
+                sb.AppendLine("go");
+            }
+
+            if (cmd.CommandType == CommandType.StoredProcedure)
+            {
+                sb.AppendLine($"exec {cmd.CommandText}");
+                int paramcount = cmd.Parameters.Count - 1;
+                int paramnum = 0;
+                string comma = ",";
+                foreach(SqlParameter p in cmd.Parameters)
+                {
+                    if (p.Direction != ParameterDirection.ReturnValue)
+                    {
+                        
+                        if (paramnum == paramcount)
+                        {
+                            comma = "";
+                        }
+                        sb.AppendLine($"{p.ParameterName} =  {(p.Value == null ? "null" : p.Value.ToString())}{comma}");
+                    }
+                    paramnum++;
+                }
+            }
+            else
+            {
+                sb.AppendLine(cmd.CommandText);
+            }
+
+#endif
+            val = sb.ToString();
+            return val;
         }
 
         public static void DebugPrintDataTable(DataTable dt)
