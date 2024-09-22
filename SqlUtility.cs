@@ -73,6 +73,23 @@ namespace CPUFramework
             return n;
         }
 
+        // GetExistingRecord
+        public static string GetExistingRecord(string record)
+        {
+            string result = "";
+            string sql = "select top 1 " + record + " from Recipe";
+            DataTable dt = SqlUtility.GetDataTable(sql);
+            if (dt.Rows.Count > 0 && dt.Columns.Count > 0)
+            {
+                String recipe = dt.Rows[0][0].ToString();
+                if (!String.IsNullOrEmpty(recipe))
+                {
+                    result = recipe;
+                }
+            }
+            return result;
+        }
+
         private static void SetAllColumnsAllowNull(DataTable dt)
         {
             foreach (DataColumn c in dt.Columns)
@@ -138,18 +155,19 @@ namespace CPUFramework
         private static string ParseConstraintMessage(string msg)
         {
             string origmsg = msg;
-            string prefix = "Ck_";
+            string prefix = "ck_";
             string msgend = "";
             if (msg.Contains(prefix) == false)
             {
-                if (msg.Contains("U_"))
+                if (msg.Contains("u_"))
                 {
-                    prefix = "U_";
+                    prefix = "u_";
                     msgend = " must be unique.";
                 }
-                else if (msg.Contains("F_"))
+                else if (msg.Contains("f_"))
                 {
-                    prefix = "F_";
+                    prefix = "f_";
+                    msgend = " has related records. Cannot delete Recipe.";
                 }
             }
             if (msg.Contains(prefix))
