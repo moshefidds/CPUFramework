@@ -32,8 +32,17 @@ namespace CPUFramework
                 conn.Open();
                 cmd.Connection = conn;
                 Debug.Print(GetSql(cmd));
-                SqlDataReader dr = cmd.ExecuteReader();
-                dt.Load(dr);
+                try
+                {
+                    SqlDataReader dr = cmd.ExecuteReader();
+                    dt.Load(dr);
+                }
+                catch(SqlException ex)
+                {
+                    string msg = ParseConstraintMessage(ex.Message);
+                    throw new Exception(msg);
+                }
+                
             }
             SetAllColumnsAllowNull(dt);
             return dt;
@@ -96,7 +105,6 @@ namespace CPUFramework
                 {
                     if (p.Direction != ParameterDirection.ReturnValue)
                     {
-                        
                         if (paramnum == paramcount)
                         {
                             comma = "";
@@ -125,6 +133,44 @@ namespace CPUFramework
                     Debug.Print(c.ColumnName + " = " + r[c.ColumnName].ToString());
                 }
             }
+        }
+
+        private static string ParseConstraintMessage(string msg)
+        {
+            string origmsg = msg;
+            string prefix = "Ck_";
+            string msgend = "";
+            if (msg.Contains(prefix) == false)
+            {
+                if (msg.Contains("U_"))
+                {
+                    prefix = "U_";
+                    msgend = " must be unique.";
+                }
+                else if (msg.Contains("F_"))
+                {
+                    prefix = "F_";
+                }
+            }
+            if (msg.Contains(prefix))
+            {
+                msg = msg.Replace("\"", "'");
+                int pos = msg.IndexOf(prefix) + prefix.Length;
+                msg = msg.Substring(pos);
+                pos = msg.IndexOf("'");
+
+                if (pos == -1)
+                {
+                    msg = origmsg;
+                }
+                else
+                {
+                    msg = msg.Substring(0, pos);
+                    msg.Replace("_", " ");
+                    msg += msgend;
+                }
+            }
+            return msg;
         }
     }
 }
