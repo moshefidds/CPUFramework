@@ -25,6 +25,11 @@ namespace CPUFramework
 
         public static DataTable GetDataTable(SqlCommand cmd)
         {
+            return DoExecuteSql(cmd, true);
+        }
+
+        private static DataTable DoExecuteSql(SqlCommand cmd, bool loadtable)
+        {
             
             DataTable dt = new();
             using (SqlConnection conn = new SqlConnection(SqlUtility.ConnectionString))
@@ -35,14 +40,20 @@ namespace CPUFramework
                 try
                 {
                     SqlDataReader dr = cmd.ExecuteReader();
-                    dt.Load(dr);
+                    if (loadtable == true)
+                    {
+                        dt.Load(dr);
+                    }
                 }
                 catch(SqlException ex)
                 {
                     string msg = ParseConstraintMessage(ex.Message);
                     throw new Exception(msg);
                 }
-                
+                catch (InvalidCastException ex)
+                {
+                    throw new Exception(cmd.CommandText + ": " + ex.Message, ex);
+                }
             }
             SetAllColumnsAllowNull(dt);
             return dt;
@@ -51,12 +62,30 @@ namespace CPUFramework
         // GetDataTable - take a sql statement and retaurn a data table
         public static DataTable GetDataTable(string sqlstatement)
         {
-            return GetDataTable(new SqlCommand(sqlstatement));
+            return DoExecuteSql(new SqlCommand(sqlstatement), true);
+        }
+
+        public static void ExecuteSQL(SqlCommand cmd)
+        {
+            DoExecuteSql(cmd, false);
         }
 
         public static void ExecuteSQL(string sqlstatement)
         {
             GetDataTable(sqlstatement);
+        }
+
+        public static void SetParamValue(SqlCommand cmd, string paramname, object value)
+        {
+            try
+            {
+                cmd.Parameters[paramname].Value = value;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(cmd.CommandText + ": " + ex.Message, ex);
+            }
+            
         }
 
         public static int GetFirstColumnFirstRowValue(string sql)
@@ -74,10 +103,10 @@ namespace CPUFramework
         }
 
         // GetExistingRecord
-        public static string GetExistingRecord(string record)
+        public static string GetExistingRecord(string record, string table)
         {
             string result = "";
-            string sql = "select top 1 " + record + " from Recipe";
+            string sql = "select top 1 " + record + " from " + table;
             DataTable dt = SqlUtility.GetDataTable(sql);
             if (dt.Rows.Count > 0 && dt.Columns.Count > 0)
             {
@@ -167,7 +196,6 @@ namespace CPUFramework
                 else if (msg.Contains("f_"))
                 {
                     prefix = "f_";
-                    msgend = " has related records. Cannot delete Recipe.";
                 }
             }
             if (msg.Contains(prefix))
@@ -186,6 +214,15 @@ namespace CPUFramework
                     msg = msg.Substring(0, pos);
                     msg.Replace("_", " ");
                     msg += msgend;
+
+                    if (prefix == "f_")
+                    {
+                        var words = msg.Split("_");
+                        if (words.Length > 1)
+                        {
+                            msg = $"Cannot delete {words[0]} because it has a related {words[1]} record.";
+                        }
+                    }
                 }
             }
             return msg;
