@@ -30,7 +30,6 @@ namespace CPUFramework
 
         private static DataTable DoExecuteSql(SqlCommand cmd, bool loadtable)
         {
-            
             DataTable dt = new();
             using (SqlConnection conn = new SqlConnection(SqlUtility.ConnectionString))
             {
@@ -40,6 +39,7 @@ namespace CPUFramework
                 try
                 {
                     SqlDataReader dr = cmd.ExecuteReader();
+                    CheckReturnValue(cmd);
                     if (loadtable == true)
                     {
                         dt.Load(dr);
@@ -57,6 +57,40 @@ namespace CPUFramework
             }
             SetAllColumnsAllowNull(dt);
             return dt;
+        }
+
+        private static void CheckReturnValue(SqlCommand cmd)
+        {
+            int returnvalue = 0;
+            string msg = "";
+            if (cmd.CommandType == CommandType.StoredProcedure)
+            {
+                foreach (SqlParameter p in cmd.Parameters)
+                {
+                    if (p.Direction == ParameterDirection.ReturnValue)
+                    {
+                        if (p.Value != null)
+                        {
+                            returnvalue = (int)p.Value;
+                        }
+                    }
+                    else if (p.ParameterName.ToLower() == "@message")
+                    {
+                        if (p.Value != null)
+                        {
+                            msg = p.Value.ToString();
+                        }
+                    }
+                }
+                if (returnvalue == 1)
+                {
+                    if (msg == "")
+                    {
+                        msg = $"{cmd.CommandText} did not execute requested action";
+                    }
+                    throw new Exception(msg);
+                }
+            }
         }
 
         // GetDataTable - take a sql statement and retaurn a data table
