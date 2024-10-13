@@ -145,7 +145,6 @@ namespace CPUFramework
             {
                 throw new Exception(cmd.CommandText + ": " + ex.Message, ex);
             }
-            
         }
 
         public static int GetFirstColumnFirstRowValue(string sql)
