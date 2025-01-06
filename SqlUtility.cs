@@ -8,7 +8,27 @@ namespace CPUFramework
 {
     public class SqlUtility
     {
-        public static string ConnectionString = "";
+        private static string ConnectionString = "";
+
+        public static void SetConnectionString(string connstring, bool tryopen, string userid = "", string password = "")
+        {
+            ConnectionString = connstring;
+            if (userid != "")
+            {
+                SqlConnectionStringBuilder b = new();
+                b.ConnectionString = ConnectionString;
+                b.UserID = userid;
+                b.Password = password;
+                ConnectionString = b.ConnectionString;
+            }
+            if (tryopen)
+            {
+                using (SqlConnection conn = new SqlConnection(ConnectionString))
+                {
+                    conn.Open();
+                }
+            }
+        }
 
         public static SqlCommand GetSqlCommand(string sprocname)
         {
@@ -257,6 +277,7 @@ namespace CPUFramework
 
             if (cmd.CommandType == CommandType.StoredProcedure)
             {
+                sb.AppendLine($"--{cmd.Connection.ConnectionString}");
                 sb.AppendLine($"exec {cmd.CommandText}");
                 int paramcount = cmd.Parameters.Count - 1;
                 int paramnum = 0;
@@ -278,9 +299,9 @@ namespace CPUFramework
             {
                 sb.AppendLine(cmd.CommandText);
             }
-
-#endif
             val = sb.ToString();
+            
+#endif
             return val;
         }
 
