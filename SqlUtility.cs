@@ -270,6 +270,7 @@ namespace CPUFramework
 
             if (!String.IsNullOrEmpty(cmd.Connection.ToString()))
             {
+                sb.AppendLine($"--{cmd.Connection.ConnectionString}");
                 sb.AppendLine($"--{cmd.Connection.DataSource}");
                 sb.AppendLine($"use {cmd.Connection.Database}");
                 sb.AppendLine("go");
@@ -277,7 +278,6 @@ namespace CPUFramework
 
             if (cmd.CommandType == CommandType.StoredProcedure)
             {
-                sb.AppendLine($"--{cmd.Connection.ConnectionString}");
                 sb.AppendLine($"exec {cmd.CommandText}");
                 int paramcount = cmd.Parameters.Count - 1;
                 int paramnum = 0;
